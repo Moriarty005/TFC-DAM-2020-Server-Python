@@ -47,6 +47,10 @@ class Protocolo:
 
         return verdadero_o_f
 
+    def checkActionToDoFromApp(self, inputLine):
+        cosa = inputLine.split("#")
+
+        return cosa[2]
 
     """
         @brief Éste método va a obtener el DNI del alumno para poder comprobar si ya está registrado
@@ -119,3 +123,52 @@ class Protocolo:
 
         return cosa[3]
 
+    """
+        @brief Éste método va a obtener la el grupo del protocolo de la rapsberry para poder ver qué alumno NO han asisitido a esa clase
+        @params protocolo, es lo que nos llega de la raspberry, que supuestamente ya debería de estar filtrado
+    """
+    def getGrupoFromRpiProtocolQueryToCheckStudentsDidntAsisted(self, protocolo):
+
+        cosa = protocolo.split("#")
+
+        return cosa[3]
+
+    """
+        @brief Éste método va a obtener la el fecha del protocolo de la rapsberry para poder registrar qué alumno NO han asisitido a esa clase
+        @params protocolo, es lo que nos llega de la raspberry, que supuestamente ya debería de estar filtrado
+    """
+    def getFechaFromRpiProtocolQueryToCheckStudentsDidntAsisted(self, protocolo):
+
+        cosa = protocolo.split("#")
+
+        return cosa[4]
+
+    """
+        @brief Éste método va a obtener la asignatura del protocolo de la rapsberry para poder registrar qué alumno NO han asisitido a esa clase
+        @params protocolo, es lo que nos llega de la raspberry, que supuestamente ya debería de estar filtrado
+    """
+    def getAsigFromRpiProtocolQueryToCheckStudentsDidntAsisted(self, protocolo):
+
+        cosa = protocolo.split("#")
+
+        return cosa[5]
+
+    """
+        @brief Éste método va a obtener el dni del profesor para poder obtener las asistencias referentes a ese profesor
+        @params protocolo, es lo que nos llega de la raspberry, que supuestamente ya debería de estar filtrado
+    """
+    def getTeacherDniToGetAssitances(self, protocolo):
+
+        cosa = protocolo.split("#")
+
+        return cosa[4]
+
+    """
+        @brief Éste método va a obtener la fecha a partir de la cual buscar asistencias
+        @params protocolo, es lo que nos llega de la raspberry, que supuestamente ya debería de estar filtrado
+    """
+    def getDateToGetAssitances(self, protocolo):
+
+        cosa = protocolo.split("#")
+
+        return cosa[5]

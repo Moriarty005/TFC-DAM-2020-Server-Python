@@ -1,5 +1,7 @@
 import socket
 import threading
+import traceback
+
 from Cosas.database_model import database_model
 
 
@@ -48,54 +50,70 @@ class ServerThread(threading.Thread):
 
                     if self.protocolo.comprobarDeDondeVienenLasPeticiones(inputline) is "APP":
 
-                        dni = self.protocolo.obtenerDniAlumnoDeProtocolo(inputline)
-                        passwd = self.protocolo.obtenerPasswdAlumnoDeProtocolo(inputline)
+                        if self.protocolo.checkActionToDoFromApp(inputline) == "LOGIN":
 
-                        self.dni_usuario = dni
+                            dni = self.protocolo.obtenerDniAlumnoDeProtocolo(inputline)
+                            passwd = self.protocolo.obtenerPasswdAlumnoDeProtocolo(inputline)
 
-                        if self.database.comprobarLogin(dni, passwd) == "profesor":
-                            print("Entramos en el if que nos dice que el profesor sí está registrado")
-                            if self.database.comprbarSiProfesorYaLogeado(dni) is False:
-                                print("El profesor no está logeado")
-                                self.database.logearProfesor(dni)
+                            self.dni_usuario = dni
 
-                                info_usuario = self.database.getInfoProfesor(dni, passwd)
+                            if self.database.comprobarLogin(dni, passwd) == "profesor":
+                                print("Entramos en el if que nos dice que el profesor sí está registrado")
+                                if self.database.comprbarSiProfesorYaLogeado(dni) is False:
+                                    print("El profesor no está logeado")
+                                    self.database.logearProfesor(dni)
 
-                                #print("Vamos a hacer split de lo que nos traemos del metodode separar las cosas y to eso")
+                                    info_usuario = self.database.getInfoProfesor(dni, passwd)
 
-                                cosas = info_usuario.split("%")
+                                    #print("Vamos a hacer split de lo que nos traemos del metodode separar las cosas y to eso")
 
-                                print("DEBUG: Una vez vamos a enviar la info los que nos traemos de la base de datos: ", cosas)
+                                    cosas = info_usuario.split("%")
 
-                                self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#LOGIN#LOGINCORRECT#TEACHER#{}#{}#{}".format(cosas[0], cosas[1], cosas[2])) + "\r\n", 'UTF-8'))
+                                    print("DEBUG: Una vez vamos a enviar la info los que nos traemos de la base de datos: ", cosas)
 
-                                print("Hemos enviado el mensaje")
+                                    self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#LOGIN#LOGINCORRECT#TEACHER#{}#{}#{}".format(cosas[0], cosas[1], cosas[2])) + "\r\n", 'UTF-8'))
 
+                                    print("Hemos enviado el mensaje")
+
+                                else:
+                                    print("El profesor YA ESTÁ LOGEADO")
+                                    self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#LOGIN#LOGINERROR" + "\r\n", 'UTF-8')))
+
+                            elif self.database.comprobarLogin(dni, passwd) == "alumno":
+                                print("Entramos en el if que nos dice que el alumno sí está registrado")
+
+                                if self.database.comprbarSiAlumnoYaLogeado(dni) is False:
+                                    print("El alumno no está logeado")
+                                    self.database.logearAlumno(dni)
+
+                                    info_usuario = self.database.getInfoAlumno(dni, passwd)
+
+                                    print("Vamos a hacer split de lo que nos traemos del metodode separar las cosas y to eso")
+
+                                    cosas = info_usuario.split("%")
+
+                                    print("DEBUG: Una vez vamos a enviar la info los que nos traemos de la base de datos: ", cosas)
+
+                                    self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#LOGIN#LOGINCORRECT#STUDENT#{}#{}#{}".format(cosas[0], cosas[1], cosas[2])) + "\r\n", 'UTF-8'))
+                                else:
+                                    print("El alumno YA ESTÁ LOGEADO")
+                                    self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#LOGIN#LOGINERROR" + "\r\n", 'UTF-8')))
                             else:
-                                print("El profesor YA ESTÁ LOGEADO")
                                 self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#LOGIN#LOGINERROR" + "\r\n", 'UTF-8')))
 
-                        elif self.database.comprobarLogin(dni, passwd) == "alumno":
-                            print("Entramos en el if que nos dice que el alumno sí está registrado")
+                        elif self.protocolo.checkActionToDoFromApp(inputline) == "GETFIRST15ASSISTANCES":
+                            print("DEBUG(checkActionToDoFromApp): Entramos en el coger al primeras 15 asistencias")
+                            dni_del_profesor = self.protocolo.getTeacherDniToGetAssitances(inputline)
+                            info = self.database.obtenerPrimeras15Asistencias(dni_del_profesor)
+                            self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#GETFIRST15ASSISTANCES#{}".format(info)) + "\r\n", 'UTF-8'))
 
-                            if self.database.comprbarSiAlumnoYaLogeado(dni) is False:
-                                print("El alumno no está logeado")
-                                self.database.logearAlumno(dni)
 
-                                info_usuario = self.database.getInfoAlumno(dni, passwd)
+                        elif self.protocolo.checkActionToDoFromApp(inputline) == "GETANOTHER15ASSISTANCESFROMDATES":
 
-                                print("Vamos a hacer split de lo que nos traemos del metodode separar las cosas y to eso")
-
-                                cosas = info_usuario.split("%")
-
-                                print("DEBUG: Una vez vamos a enviar la info los que nos traemos de la base de datos: ", cosas)
-
-                                self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#LOGIN#LOGINCORRECT#STUDENT#{}#{}#{}".format(cosas[0], cosas[1], cosas[2])) + "\r\n", 'UTF-8'))
-                            else:
-                                print("El alumno YA ESTÁ LOGEADO")
-                                self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#LOGIN#LOGINERROR" + "\r\n", 'UTF-8')))
-                        else:
-                            self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#LOGIN#LOGINERROR"  + "\r\n", 'UTF-8')))
+                            dni_del_profesor = self.protocolo.getTeacherDniToGetAssitances(inputline)
+                            fecha = self.protocolo.getDateToGetAssitances(inputline)
+                            info = self.database.obtenerPrimeras15Asistencias(dni_del_profesor)
+                            self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#GETANOTHER15ASSISTANCESFROMDATES#{}".format(info)) + "\r\n", 'UTF-8'))
 
 
                     if self.protocolo.comprobarDeDondeVienenLasPeticiones(inputline) is "RPI4":
@@ -108,7 +126,10 @@ class ServerThread(threading.Thread):
                             asig = self.protocolo.getSubjectFromTheRaspberry(inputline)
                             fecha = self.protocolo.getRegisterDateFromTheRaspberry(inputline)
                             prof = self.database.obtenerProfesorQueImparteAsig(asig)
-                            self.database.registrarAsistenciaDeAlumno(fecha, asig, dni_al, prof)
+                            if self.database.registrarAsistenciaDeAlumno(fecha, asig, dni_al, prof):
+                                self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#ASSISTANCEREGISTEREDCORRECTLY") + "\r\n", 'UTF-8'))
+                            else:
+                                self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#ASSISTANCEREGISTERERROR") + "\r\n", 'UTF-8'))
 
                             print("Ya hemos insertado la info en la base de datos")
                         elif self.protocolo.checkWhatActionDoFromTheRaspberry(inputline) == "GETTIMETABLE":
@@ -119,8 +140,23 @@ class ServerThread(threading.Thread):
 
                             info = self.database.obtenerHorarioDeUnaClase(clase)
 
+
                             self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#GETTIMETABLE#{}".format(info)) + "\r\n", 'UTF-8'))
 
+                        elif self.protocolo.checkWhatActionDoFromTheRaspberry(inputline) == "CLASSENDING":
+
+                            grupo = self.protocolo.getGrupoFromRpiProtocolQueryToCheckStudentsDidntAsisted(inputline)
+                            fecha = self.protocolo.getFechaFromRpiProtocolQueryToCheckStudentsDidntAsisted(inputline)
+                            asig = self.protocolo.getAsigFromRpiProtocolQueryToCheckStudentsDidntAsisted(inputline)
+
+                            prof = self.database.getProfesorEnBaseAAsignatura(inputline)
+
+                            alumnos_no_asistidos = []
+                            self.database.obtenerAlumnosDeUnGrupo(grupo, alumnos_no_asistidos)
+                            self.database.checkWhatStudentsDidntRegisteredTheirAsistance(alumnos_no_asistidos, fecha)
+
+                            for alumnos in alumnos_no_asistidos:
+                                self.database.registrarLaNOAsistenciaDeAlumno(fecha, asig, alumnos, prof)
 
 
                 inputline = self.socket.recv(1024)
@@ -130,6 +166,9 @@ class ServerThread(threading.Thread):
 
         except Exception as e:
             print("Excepcion en la hebra de servidor: ", e)
+            tb = traceback.format_exc()
+            print("TRACEBACK: ", tb)
+
             if(self.dni_usuario != None):
                 self.database.deslogearProfesor(self.dni_usuario)
                 self.database.deslogearAlumno(self.dni_usuario)

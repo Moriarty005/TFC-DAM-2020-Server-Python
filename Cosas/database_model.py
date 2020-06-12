@@ -1,3 +1,6 @@
+import traceback
+from datetime import datetime
+
 import pymysql
 from Cosas.Protocolo import Protocolo
 
@@ -199,7 +202,7 @@ class database_model:
                 print("apellidos prof: {}".format(user[3]))
                 print("centro prof: {}".format(user[4]))
 
-                info = str(user[0]) + "%" + str(user[4]) + "%" + str(user[2]) + "%" + str(user[3])
+                info = str(user[0]) + "%" + str(user[2]) + "%" + str(user[3])
 
                 #info = dni + "%" + name + "%" + surnames
                 print("Info del profesor que vamos a pillar ahi a tope bro: ", info)
@@ -225,6 +228,9 @@ class database_model:
     """
     def registrarAsistenciaDeAlumno(self,fecha, asignatura, dni_alumno, profesor):
         print("Vamos a meter info en la databse")
+
+        registrado = False
+
         try:
             self.crearConexion()
             self.cursor = self.conexion.cursor()
@@ -236,9 +242,14 @@ class database_model:
 
             self.cerrarConexion()
 
+            registrado = True
+
         except Exception as e:
+            registrado = False
             self.cerrarConexion()
             print("Excepcion (registrarAsistenciaDeAlumno): ", e)
+
+        return registrado
 
 
     """
@@ -271,9 +282,10 @@ class database_model:
 
 
                 if dia[2] is not 6:
-                    info = info + str(dia[3]) + "."
+                        info = info + str(dia[3]) + "%" + str(dia[4]) + "."
                 else:
-                    info = info + str(dia[3]) + "#"
+
+                    info = info + str(dia[3]) + "%" + str(dia[4]) + "#"
 
                 diaa = dia[1]
 
@@ -419,7 +431,7 @@ class database_model:
 
             self.crearConexion()
             self.cursor = self.conexion.cursor()
-            query = "SELECT * FROM profesor WHERE dni_profesor='{}';".format(dni)
+            query = "SELECT * FROM profesor WHERE dni_prof='{}';".format(dni)
             print("Query (comprbarSiProfesorYaLogeado): ", query)
 
             self.cursor.execute(query)
@@ -442,6 +454,7 @@ class database_model:
 
 
     def obtenerProfesorQueImparteAsig(self, id_asig):
+        dni_prof = None
         try:
 
             self.crearConexion()
@@ -452,7 +465,7 @@ class database_model:
             self.cursor.execute(query)
             cosa = self.cursor.fetchall()
 
-            dni_prof = None
+
             for asig in cosa:
                 print("asig: ", asig)
                 dni_prof = asig[3]
@@ -464,3 +477,152 @@ class database_model:
             print("Excepcion en obtenerProfesorQueImparteAsig: ", e)
 
         return dni_prof
+
+
+    def obtenerPrimeras15Asistencias(self, dni_prof):
+        try:
+
+            self.crearConexion()
+            self.cursor = self.conexion.cursor()
+            query = "SELECT * FROM asistencia WHERE dni_prof='{}' ORDER BY fecha_registro DESC LIMIT 15;".format(dni_prof)
+            print("Query (obtenerPrimeras15Asistencias): ", query)
+
+            self.cursor.execute(query)
+            cosa = self.cursor.fetchall()
+
+            info = ""
+            for asis in cosa:
+                print("asis: ", asis)
+                info = info + str(asis[0]) + "%" + str(asis[1]) + "%" + str(asis[2]) + "%" + str(asis[3]) + "%" + str(asis[4]) + "#"
+
+            self.cerrarConexion()
+
+        except Exception as e:
+            self.cerrarConexion()
+            print("Excepcion en obtenerPrimeras15Asistencias: ", e)
+            tb = traceback.format_exc()
+            print("TRACEBACK: ", tb)
+
+        return info
+
+    def obtenerOtras15AsistenciasEnBaseAFecha(self, fecha, dni_prof):
+
+        info = None
+
+        try:
+            self.crearConexion()
+            self.cursor = self.conexion.cursor()
+            query = "SELECT * FROM asistencia WHERE dni_prof='{}' AND fecha_registro<'{}' ORDER BY fecha_registro DESC LIMIT 15;".format(dni_prof, fecha)
+            print("Query (obtenerPrimeras15Asistencias): ", query)
+
+            self.cursor.execute(query)
+            cosa = self.cursor.fetchall()
+
+
+            for asis in cosa:
+                print("asis: ", asis)
+                info = info + str(asis[0]) + "%" + str(asis[1]) + "%" + str(asis[2]) + "%" + str(asis[3]) + "%" + str(asis[4]) + "#"
+
+            self.cerrarConexion()
+
+        except Exception as e:
+            self.cerrarConexion()
+            print("Excepcion en obtenerPrimeras15Asistencias: ", e)
+
+        return info
+
+    def obtenerAlumnosDeUnGrupo(self, grupo, lista_alumnos):
+
+        try:
+            self.crearConexion()
+            self.cursor = self.conexion.cursor()
+            query = "SELECT * FROM grupos WHERE nombre_curso='{}';".format(grupo)
+            print("Query (obtenerAlumnosDeUnGrupo): ", query)
+
+            self.cursor.execute(query)
+            cosa = self.cursor.fetchall()
+
+            info = None
+            for curso in cosa:
+                print("curso: ", curso)
+
+            self.cerrarConexion()
+
+        except Exception as e:
+            self.cerrarConexion()
+            print("Excepcion en obtenerAlumnosDeUnGrupo: ", e)
+
+        return info
+
+    def checkWhatStudentsDidntRegisteredTheirAsistance(self, lista_alumnos, fecha):
+        try:
+
+            self.crearConexion()
+            self.cursor = self.conexion.cursor()
+
+            formato = "%d/%m/%Y %H:%M:%S"
+            fecha_menos_uno = datetime.strptime(fecha, formato)
+            fecha_menos_uno = fecha_menos_uno - datetime.timedelta(hours=1)
+
+            for alumno in lista_alumnos:
+
+                query = "SELECT * FROM asistencia WHERE dni_estudiante='{}' AND fecha_registro < '{}' AND fecha_registro > '{}';".format(alumno, fecha, fecha_menos_uno)
+                print("Query (checkWhatStudentsDidntRegisteredTheirAsistance): ", query)
+
+                self.cursor.execute(query)
+                cosa = self.cursor.fetchall()
+
+                for curso in cosa:
+                    print("curso: ", curso)
+                    lista_alumnos.remove(alumno)
+
+            self.cerrarConexion()
+
+        except Exception as e:
+            self.cerrarConexion()
+            print("Excepcion en checkWhatStudentsDidntRegisteredTheirAsistance: ", e)
+
+
+    def registrarLaNOAsistenciaDeAlumno(self, fecha, asig, al, prof):
+
+        try:
+            self.crearConexion()
+            self.cursor = self.conexion.cursor()
+            query = "INSERT INTO asistencia VALUES('{}', '0', '{}', '{}', '{}');".format(fecha, asig, al, prof)
+            print("Query (registrarLaNOAsistenciaDeAlumno): ", query)
+
+            self.cursor.execute(query)
+            self.conexion.commit()
+
+            self.cerrarConexion()
+
+        except Exception as e:
+            registrado = False
+            self.cerrarConexion()
+            print("Excepcion (registrarLaNOAsistenciaDeAlumno): ", e)
+
+
+
+    def getProfesorEnBaseAAsignatura(self, asig):
+
+        try:
+            self.crearConexion()
+            self.cursor = self.conexion.cursor()
+            query = "SELECT * FROM profesor WHERE id_asignatura='{}';".format(asig)
+            print("Query (getProfesorEnBaseAAsignatura): ", query)
+
+            self.cursor.execute(query)
+            cosa = self.cursor.fetchall()
+
+            prof = None
+            for profesor in cosa:
+                print("profesor: ", profesor)
+                prof = str(profesor[3])
+
+            self.cerrarConexion()
+
+        except Exception as e:
+            self.cerrarConexion()
+            print("Excepcion en getProfesorEnBaseAAsignatura: ", e)
+
+        return prof
