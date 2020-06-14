@@ -513,7 +513,7 @@ class database_model:
             self.crearConexion()
             self.cursor = self.conexion.cursor()
             query = "SELECT * FROM asistencia WHERE dni_prof='{}' AND fecha_registro<'{}' ORDER BY fecha_registro DESC LIMIT 15;".format(dni_prof, fecha)
-            print("Query (obtenerPrimeras15Asistencias): ", query)
+            print("Query (obtenerOtras15AsistenciasEnBaseAFecha): ", query)
 
             self.cursor.execute(query)
             cosa = self.cursor.fetchall()
@@ -527,7 +527,7 @@ class database_model:
 
         except Exception as e:
             self.cerrarConexion()
-            print("Excepcion en obtenerPrimeras15Asistencias: ", e)
+            print("Excepcion en obtenerOtras15AsistenciasEnBaseAFecha: ", e)
 
         return info
 
@@ -626,3 +626,32 @@ class database_model:
             print("Excepcion en getProfesorEnBaseAAsignatura: ", e)
 
         return prof
+
+    def getAsistenciasDeUnDia(self, usuario, dia):
+
+        dias = dia.split(" ")
+        dia_bueno = dias[0]
+
+        info = None
+
+        try:
+            self.crearConexion()
+            self.cursor = self.conexion.cursor()
+            query = "select * from asistencia WHERE dni_estudiante='{}' AND fecha_registro like '%{}%';".format(usuario, dia_bueno)
+            print("Query (getAsistenciasDeUnDia): ", query)
+
+            self.cursor.execute(query)
+            cosa = self.cursor.fetchall()
+
+            info = ""
+            for asis in cosa:
+                print("asistencia", asis)
+                info = info + str(asis[0]) + "%" + str(asis[1]) + "%" + str(asis[2]) + "%" + str(asis[3]) + "%" + str(asis[4]) + "#"
+
+            self.cerrarConexion()
+
+        except Exception as e:
+            self.cerrarConexion()
+            print("Excepcion en getAsistenciasDeUnDia: ", e)
+
+        return info

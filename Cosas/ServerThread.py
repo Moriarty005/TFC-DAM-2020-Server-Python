@@ -108,12 +108,20 @@ class ServerThread(threading.Thread):
                             self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#GETFIRST15ASSISTANCES#{}".format(info)) + "\r\n", 'UTF-8'))
 
 
+
                         elif self.protocolo.checkActionToDoFromApp(inputline) == "GETANOTHER15ASSISTANCESFROMDATES":
 
-                            dni_del_profesor = self.protocolo.getTeacherDniToGetAssitances(inputline)
+                            dni_del_alumno = self.protocolo.getTeacherDniToGetAssitances(inputline)
                             fecha = self.protocolo.getDateToGetAssitances(inputline)
-                            info = self.database.obtenerPrimeras15Asistencias(dni_del_profesor)
+                            info = self.database.obtenerOtras15AsistenciasEnBaseAFecha(fecha, dni_del_alumno)
                             self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#GETANOTHER15ASSISTANCESFROMDATES#{}".format(info)) + "\r\n", 'UTF-8'))
+
+                        elif self.protocolo.checkActionToDoFromApp(inputline) == "GETTODAYASISTANCES":
+
+                            dni_del_alumno = self.protocolo.getTeacherDniToGetAssitances(inputline)
+                            dia = self.protocolo.getDateToGetAssitances(inputline)
+                            info = self.database.getAsistenciasDeUnDia(dni_del_alumno, dia)
+                            self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#GETFIRST15ASSISTANCES#{}".format(info)) + "\r\n", 'UTF-8'))
 
 
                     if self.protocolo.comprobarDeDondeVienenLasPeticiones(inputline) is "RPI4":
