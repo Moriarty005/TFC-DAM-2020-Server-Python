@@ -77,7 +77,7 @@ class ServerThread(threading.Thread):
 
                                 else:
                                     print("El profesor YA ESTÁ LOGEADO")
-                                    self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#LOGIN#LOGINERROR" + "\r\n", 'UTF-8')))
+                                    self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#LOGIN#LOGINERROR") + "\r\n", 'UTF-8'))
 
                             elif self.database.comprobarLogin(dni, passwd) == "alumno":
                                 print("Entramos en el if que nos dice que el alumno sí está registrado")
@@ -97,9 +97,9 @@ class ServerThread(threading.Thread):
                                     self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#LOGIN#LOGINCORRECT#STUDENT#{}#{}#{}".format(cosas[0], cosas[1], cosas[2])) + "\r\n", 'UTF-8'))
                                 else:
                                     print("El alumno YA ESTÁ LOGEADO")
-                                    self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#LOGIN#LOGINERROR" + "\r\n", 'UTF-8')))
+                                    self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#LOGIN#LOGINERROR") + "\r\n", 'UTF-8'))
                             else:
-                                self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#LOGIN#LOGINERROR" + "\r\n", 'UTF-8')))
+                                self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#LOGIN#LOGINERROR") + "\r\n", 'UTF-8'))
 
                         elif self.protocolo.checkActionToDoFromApp(inputline) == "GETFIRST15ASSISTANCES":
                             print("DEBUG(checkActionToDoFromApp): Entramos en el coger al primeras 15 asistencias")
@@ -122,6 +122,19 @@ class ServerThread(threading.Thread):
                             dia = self.protocolo.getDateToGetAssitances(inputline)
                             info = self.database.getAsistenciasDeUnDia(dni_del_alumno, dia)
                             self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#GETFIRST15ASSISTANCES#{}".format(info)) + "\r\n", 'UTF-8'))
+
+                        elif self.protocolo.checkActionToDoFromApp(inputline) == "MODIFYSTUDENTASSISTANCE":
+
+                            dni_del_alumno = self.protocolo.getTeacherDniToGetAssitances(inputline)
+                            dia = self.protocolo.getDateToGetAssitances(inputline)
+                            try:
+                                self.database.modificarAsistenciaAlumno(dni_del_alumno, dia)
+                                self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#MODIFYSTUDENTASSISTANCE#TODOGUAY") + "\r\n", 'UTF-8'))
+
+                            except Exception as e:
+                                print("EXCEPTION (MODIFYSTUDENTASSISTANCE): ", e)
+                                self.socket.send(bytes(str("ASSISTANCESUPPORT#SERVER#MODIFYSTUDENTASSISTANCE#ERRORMODIFICANDOASISTENCIA") + "\r\n", 'UTF-8'))
+
 
 
                     if self.protocolo.comprobarDeDondeVienenLasPeticiones(inputline) is "RPI4":

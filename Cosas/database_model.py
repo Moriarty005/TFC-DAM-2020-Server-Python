@@ -655,3 +655,22 @@ class database_model:
             print("Excepcion en getAsistenciasDeUnDia: ", e)
 
         return info
+
+    def modificarAsistenciaAlumno(self, usuario, dia):
+
+        try:
+            self.crearConexion()
+            self.cursor = self.conexion.cursor()
+            query = "update asistencia set asistido='1' WHERE dni_estudiante='{}' AND fecha_registro like '%{}%';".format(usuario, dia)
+            print("Query (modificarAsistenciaAlumno): ", query)
+
+            self.cursor.execute(query)
+            self.conexion.commit()
+            print("Ejecutado el modificar")
+
+            self.cerrarConexion()
+
+
+        except Exception as e:
+            self.cerrarConexion()
+            print("Excepcion en modificarAsistenciaAlumno: ", e)
